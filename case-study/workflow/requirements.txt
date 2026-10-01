@@ -1,0 +1,6 @@
+anthropic
+requests
+gspread
+google-auth
+google-auth-oauthlib
+pytest
