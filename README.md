@@ -1,6 +1,6 @@
 # claude-workflow-builder-skill
 
-A [Claude Code](https://claude.com/claude-code) skill that builds and modifies business automation workflows the same way every time, and the workflow I use to test it: a weekly job that finds Italian companies working on Microsoft technologies, finds a contact in each one and drafts a personalised email in a Google Sheet. **No email is ever sent.**
+A [Claude Code](https://claude.com/claude-code) skill that builds and modifies business automation workflows the same way every time, and the workflow I use to test it, **niche-prospector**: a scheduled job that finds companies in a niche (currently Italian companies working on Microsoft technologies), finds a contact in each one and drafts a personalised email in a Google Sheet. **No email is ever sent.**
 
 ## The skill
 
@@ -16,6 +16,18 @@ When an LLM reasons *and* executes at the same time, errors compound: five steps
 
 The structure comes from the starter project this skill was built for (not included here). Similar ideas exist under other names, e.g. *Directive-Orchestration-Execution* or *Workflows-Agents-Tools*.
 
+### Project structure
+
+Every RBI project has the same layout. The skill works inside it: it writes the Rule, the scripts and the tests, and creates the shared basics if they are missing.
+
+| Folder / file | What it holds | Why |
+|---|---|---|
+| `rules/` | One procedure per workflow, in Markdown: steps, validation after each step, limits, edge cases, verification status | The *what*. It can be read and changed without touching the code; Claude reads it before running anything |
+| `implementation/` | Python scripts, one per responsibility, plus the tests | The *how*. Deterministic code: same input, same result, and it can be tested |
+| `.tmp/` | Files passed from one step to the next (e.g. `leads.json`) and the run state (`run_state.json`) | Every step reads the previous step's output from a file, so a run can be checked, re-run or resumed after an interruption without paying again. Safe to delete |
+| `CLAUDE.md` | Project instructions and the list of available workflows | Claude Code reads it at the start of every session: it is the entry point that tells Claude which Rule to follow |
+| `.env` | API keys and settings | Secrets stay out of the code and are never committed |
+
 ### What it makes Claude do
 
 **Mode A — create a workflow.** Clarify goal, constraints and side effects; verify every external service *before* building (plan, API access, minimum cost, limits, permissions); make one real, minimal discovery call to see the actual data; split the work into single-responsibility scripts; write the Rule, the scripts and mocked tests; run it for real, first with one item, and read the result back from the destination.
@@ -26,7 +38,9 @@ The structure comes from the starter project this skill was built for (not inclu
 
 Every run ends with an honest report: ✅ proven with real data / ⚠️ only in tests or with limits / ❌ not working.
 
-## The workflow (case study)
+## The workflow: niche-prospector
+
+The niche is defined by search keywords and a qualification filter (`discover_companies.py`), plus the target roles (`find_leads.py`); today they are set for Microsoft partners in Italy. Another niche in Italy means changing those; another country also means regions, country and the language of the emails.
 
 | Step | What happens | Technology |
 |---|---|---|
@@ -49,6 +63,7 @@ skill-v2/            v2 — English + original-it
 skill-v1/            v1 — English + original-it
 case-study/          blind test of v1: what went wrong and how v2 addresses it
 case-study-2/        from manual workflow to weekly automation; blind test of v3
+  niche-prospector/  the current workflow (v7): Rule, scripts, tests (no secrets, no real data)
 CHANGELOG.md         what changed in the skill (v1 → v3) and in the workflow (v1 → v7)
 ```
 
@@ -56,7 +71,7 @@ The skill was written and tested in Italian. The English files are translations 
 
 ## How to use it
 
-Copy the `skill/` folder into your project as `.claude/skills/new-rbi-workflow/`, then ask Claude Code for a new workflow or a change to an existing one. The skill expects (or creates) a project with `rules/`, `implementation/`, `.tmp/` and a `CLAUDE.md`.
+Copy the `skill/` folder into your project as `.claude/skills/new-rbi-workflow/`, then ask Claude Code for a new workflow or a change to an existing one. The skill expects the [project structure](#project-structure) above; if the shared basics are missing (`.env` loading, test file, run state), it creates them first.
 
 ## License
 

@@ -37,7 +37,7 @@ Based on the 15 issues of the v1 blind test ([case-study](case-study/test-log.md
 
 Procedure to create a Rules-Brain-Implementation workflow. Tested blind: the lead search never produced a usable lead.
 
-## Case-study workflow (cold outreach)
+## Case-study workflow: niche-prospector (cold outreach)
 
 Find B2B contacts → Claude drafts an email → Google Sheet. Never sends.
 

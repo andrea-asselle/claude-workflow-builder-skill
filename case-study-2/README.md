@@ -2,7 +2,7 @@
 
 What happened between skill v2 and v3, and how the cold outreach workflow evolved from "search leads by hand" to a weekly cloud job that finds niche companies, finds a contact in each, drafts an email and logs everything. All numbers come from real runs (October 2026). No email was ever sent.
 
-People and companies found during the runs are not named here.
+People and companies found during the runs are not named here. The workflow is called **niche-prospector**; its current code is in [`niche-prospector/`](niche-prospector/): the Rule ([`rules/cold_outreach.md`](niche-prospector/rules/cold_outreach.md), in Italian), the scripts and the 263 tests.
 
 ## Timeline
 
