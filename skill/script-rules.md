@@ -1,4 +1,4 @@
-# Rules for RBI scripts
+# Rules for RBI scripts (v3)
 
 They apply to every script in `implementation/`, whatever it does.
 
@@ -31,6 +31,8 @@ If some items fail and others don't: exit code 4 (partial), not 0.
 ## 4. Repeatable actions (idempotency)
 If the script writes, sends, creates or modifies something externally, a second run with the same input **must not duplicate** the effect: check what has already been done (unique key, state in `.tmp/`) and skip it, reporting `skipped_duplicates`. Do not delete and rewrite existing data to avoid duplicates.
 
+The duplicate check happens **before every paid call** in the chain, not only at the end: an item already in the destination must not make either the scraper or the model spend.
+
 ## 5. Retries
 Retry only transient errors (timeout, 429, 5xx) and only for operations that are safe to repeat. Increasing wait (e.g. 1s, 2s, 4s), max 3 attempts. Never retry input, authentication or permission errors.
 
@@ -42,9 +44,21 @@ Every script with external effects has an option to try it without consequences:
 ## 7. Costs
 - If the script spends money, estimate the cost before each call and stop if it exceeds the per-run cap.
 - After the run, read the **real cost** from the service when possible, instead of only reporting the estimate.
+- **Always set** the parameters that decide how much is spent (number of results, pages, memory, execution mode): vendor defaults can be huge (e.g. 100,000 results) or charge the start several times (e.g. a "one item at a time" mode).
+
+## 7b. Filters on external data
+- External data is always re-checked in the script: vendor filters are approximate (roles, country, entity type).
+- Compare short texts and acronyms **as whole words**, not as substrings ("Socio" contains "cio", "Director" contains "cto").
+- Tell similar-but-different cases apart (e.g. "Product Owner" is not an owner; a community or a podcast is not a company) and compare type fields by **content**, not by exact equality ("Educational" vs "Educational Institution").
+- Every discard has a **reason** readable in the output.
 
 ## 8. Environment (Windows)
 - Force UTF-8 at the start of `main()`: `sys.stdout.reconfigure(encoding="utf-8")` and the same for `stderr`.
 - Read and write files with `encoding="utf-8"`.
 - Do not use inline Python scripts in shell commands: save them to a file and run them from there.
 - Use the project interpreter and set a timeout on long commands.
+
+## 9. Tests isolated from real resources
+- Tests must never reach real services or data (sheets, CRM, paid APIs).
+- Removing an environment variable **is not enough** if the code reloads `.env` (e.g. `load_env()`): block the client in the test (e.g. `gspread.authorize` raising an error) with an `autouse` fixture.
+- If a test touches a real resource by mistake: stop, check what was written, clean up **only** what the test created and tell the user.

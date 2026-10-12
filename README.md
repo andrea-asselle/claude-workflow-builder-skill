@@ -1,12 +1,10 @@
 # claude-workflow-builder-skill
 
-A [Claude Code](https://claude.com/claude-code) skill that builds business automation workflows the same way every time: a written procedure (**Rule**), small deterministic Python scripts (**Implementation**), and Claude only orchestrating them (**Brain**).
+A [Claude Code](https://claude.com/claude-code) skill that builds and modifies business automation workflows the same way every time, and the workflow I use to test it: a weekly job that finds Italian companies working on Microsoft technologies, finds a contact in each one and drafts a personalised email in a Google Sheet. **No email is ever sent.**
 
-I wrote it, tested it "blind" on a real task, logged everything that went wrong, and rewrote it. This repo contains both versions and the full case study.
+## The skill
 
-> **Status: work in progress.** v2 is based on the test findings but has not been through a new end-to-end test yet.
-
-## The idea
+### The idea: Rules, Brain, Implementation
 
 When an LLM reasons *and* executes at the same time, errors compound: five steps at 90% reliability each give ~59% overall. The RBI structure separates the two:
 
@@ -16,72 +14,49 @@ When an LLM reasons *and* executes at the same time, errors compound: five steps
 | **Brain** | Claude | *When* and *which* tool to use. It does not run business logic itself |
 | **Implementation** | `implementation/*.py` | *How*: one script per responsibility, JSON output, exit codes, hard limits |
 
-The Rules/Brain/Implementation structure comes from the starter project this skill was built for (not included in this repo). Similar ideas exist under other names, e.g. *Directive-Orchestration-Execution* or *Workflows-Agents-Tools*.
+The structure comes from the starter project this skill was built for (not included here). Similar ideas exist under other names, e.g. *Directive-Orchestration-Execution* or *Workflows-Agents-Tools*.
 
-## What the skill does
+### What it makes Claude do
 
-Given a request like *"I need a workflow that does X"*, the skill makes Claude:
+**Mode A — create a workflow.** Clarify goal, constraints and side effects; verify every external service *before* building (plan, API access, minimum cost, limits, permissions); make one real, minimal discovery call to see the actual data; split the work into single-responsibility scripts; write the Rule, the scripts and mocked tests; run it for real, first with one item, and read the result back from the destination.
 
-1. Clarify goal, inputs, credentials, side effects and the user's constraints (budget, free/paid plans).
-2. Prepare the project, creating the shared basics if they are missing.
-3. **Verify every external service before building**: required plan, API usage, minimum cost per run, limits, permissions. Stop if something conflicts with the requirements.
-4. Make one real, minimal **discovery call** to see the actual response shape before writing any parsing code.
-5. Split the work into single-responsibility scripts.
-6. Write the Rule from a template.
-7. Write the scripts following [`script-rules.md`](skill/script-rules.md): timeouts, response-shape checks, per-item outcome, idempotent writes, retries with backoff, `--dry-run`, UTF-8 on Windows.
-8. Write mocked tests (and say clearly that they do not prove the workflow works).
-9. Document the workflow.
-10. Run it for real, first with one item, and read the result back from the destination.
+**Mode B — modify a workflow.** Read the Rule, scripts, tests and verification status first; work in a copy if the change is experimental; re-verify any service that changes; make minimal, versioned changes; turn every user decision into a test; rerun the whole suite and a real run.
 
-It must close with an honest report: ✅ proven with real data / ⚠️ only in tests or with fake data / ❌ not working.
+**Automatic workflows** ([`automation-rules.md`](skill/automation-rules.md)): a deterministic orchestrator replaces the Brain, no double spending, quality checks in code, a secure and idempotent trigger, per-run and monthly spending caps, a log row for every run, and a trigger that stays **off** until the user asks.
+
+Every run ends with an honest report: ✅ proven with real data / ⚠️ only in tests or with limits / ❌ not working.
+
+## The workflow (case study)
+
+| Step | What happens | Technology |
+|---|---|---|
+| 1. Companies | Google search of LinkedIn company pages for a Microsoft product and an Italian region (both rotate every run); communities and companies already seen are dropped; each page is checked (HQ in Italy, real website, Microsoft specialisation) | Apify actors (Google Search, LinkedIn company) |
+| 2. People | One contact per company: IT / operations / delivery roles; in companies up to 50 employees the owner if no one else is found; verified email on the company domain | Apify actors (B2B lead database, LinkedIn employees) |
+| 3. Email | Fixed structure (subject, greeting, offer, invitation, signature) plus two sentences written by Claude from the information found about the company and the contact; automatic quality checks | Claude API (Haiku) |
+| 4. Output | Drafts in a Google Sheet, never sent; a log tab with outcome, discards and costs of every run | Google Sheets API |
+| Trigger | Starts on its own in the cloud on the chosen day and time; per-run ($0.50) and monthly ($2.50) spending caps | Modal |
+
+Everything is plain Python: one script per step, a deterministic orchestrator, 263 tests with external APIs mocked.
+
+**Real results:** it works end to end, including a run started by the real cloud trigger. In small Italian IT companies it finds about one contact for every three valid companies; a run costs about $0.11–0.18.
 
 ## Repository layout
 
 ```
-skill/               v2 (current) — English translation
-  original-it/       v2 as written and used, in Italian
-skill-v1/            v1 (the version that was tested) — English translation
-  original-it/       v1 as written and tested, in Italian
-case-study/
-  test-log.md        everything that went wrong in the blind test, and the v2 rule that addresses it
-  workflow/          the code Claude produced during the test (secrets and personal data removed)
+skill/               v3 (current) — English translation
+  original-it/       v3 as written and used, in Italian
+skill-v2/            v2 — English + original-it
+skill-v1/            v1 — English + original-it
+case-study/          blind test of v1: what went wrong and how v2 addresses it
+case-study-2/        from manual workflow to weekly automation; blind test of v3
+CHANGELOG.md         what changed in the skill (v1 → v3) and in the workflow (v1 → v7)
 ```
 
 The skill was written and tested in Italian. The English files are translations with the same structure and content; the translations themselves have not been run in a separate test.
 
 ## How to use it
 
-Copy the `skill/` folder into your project as `.claude/skills/new-rbi-workflow/`, then ask Claude Code for a new workflow. The skill expects (or creates) a project with `rules/`, `implementation/`, `.tmp/` and a `CLAUDE.md`.
-
-## The blind test
-
-I gave v1 to a fresh Claude Code session, in an empty folder, with no access to the original project, and asked it to rebuild an existing workflow: **cold outreach** — find B2B leads (CEOs of Italian companies) with Apify, write a personalised email for each one with the Claude API, and put everything in a Google Sheet. No emails are ever sent. Budget: $0.50 per run, max 5 leads.
-
-### Result
-
-| Part of the workflow | Status | How it was tested |
-|---|---|---|
-| **Lead search (Apify)** | ❌ No usable leads | Real runs |
-| Email writing (Claude Haiku 4.5) | ⚠️ Works | One made-up lead |
-| Writing to Google Sheets | ⚠️ Works, 13 columns read back and checked | One made-up lead |
-| Logic (limits, errors, duplicates) | ⚠️ 46 tests passing | Mocked APIs |
-
-**The workflow is not complete: its core step never produced a usable lead.** Total cost of the test: about $0.03.
-
-### Known limitation: the lead source
-
-Lead search depends on the Apify actor. On Apify's free plan:
-
-- `code_crafter/leads-finder`, used by the starter project, **cannot be run via API** (UI only).
-- `braveleads/...` and `olympus/...` charge a **minimum of 100 leads per run**.
-- `atomus/leads-finder` returns **no emails** on the free plan.
-- `themineworks/b2b-leads-finder` works via API but **searches by company, not by role and country**; on the three companies tested it found no CEO.
-
-The starter project found real leads with `code_crafter` (most likely on a paid plan). Running this version on a paid plan is the next test. The bottleneck was the data source, not the pipeline — but that is an assumption until it's proven.
-
-### What I learned
-
-The most useful finding: **v1 trusted external services too much.** Claude picked a service from memory, guessed the response field names, treated an error message as valid data, and discovered plan limits only after building around them. v2 adds explicit checks for each of these. Details in [`case-study/test-log.md`](case-study/test-log.md).
+Copy the `skill/` folder into your project as `.claude/skills/new-rbi-workflow/`, then ask Claude Code for a new workflow or a change to an existing one. The skill expects (or creates) a project with `rules/`, `implementation/`, `.tmp/` and a `CLAUDE.md`.
 
 ## License
 

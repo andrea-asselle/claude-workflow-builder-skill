@@ -1,4 +1,4 @@
-# Regole per gli script RBI
+# Regole per gli script RBI (v3)
 
 Valgono per ogni script in `implementation/`, qualunque cosa faccia.
 
@@ -31,6 +31,8 @@ Se una parte fallisce ma le altre no: exit code 4 (parziale), non 0.
 ## 4. Azioni ripetibili senza danni (idempotenza)
 Se lo script scrive, invia, crea o modifica qualcosa all'esterno, un secondo lancio con lo stesso input **non deve duplicare** l'effetto: controlla cosa e' gia' stato fatto (chiave univoca, stato in `.tmp/`) e saltalo, riportando `skipped_duplicates`. Non cancellare e riscrivere dati esistenti per evitare i duplicati.
 
+Il controllo dei duplicati va fatto **prima di ogni chiamata a pagamento** della catena, non solo alla fine: un elemento gia' presente nella destinazione non deve far spendere ne' lo scraper ne' il modello.
+
 ## 5. Tentativi
 Ritenta solo errori temporanei (timeout, 429, 5xx) e solo per operazioni ripetibili senza danni. Attesa crescente (es. 1s, 2s, 4s), massimo 3 tentativi. Mai ritentare errori di input, di autenticazione o di permessi.
 
@@ -42,9 +44,21 @@ Ogni script con effetti esterni ha un'opzione per provarlo senza conseguenze:
 ## 7. Costi
 - Se lo script spende, stima il costo prima di ogni chiamata e fermati se supera il tetto per esecuzione.
 - Dopo l'esecuzione, leggi il **costo reale** dal servizio quando possibile, invece di riportare solo la stima.
+- **Imposta sempre** i parametri che decidono quanto si spende (numero di risultati, pagine, memoria, modalita' di esecuzione): i valori predefiniti dei fornitori possono essere enormi (es. 100.000 risultati) o far pagare l'avvio piu' volte (es. una modalita' "un elemento alla volta").
+
+## 7b. Filtri sui dati esterni
+- I dati esterni si ricontrollano sempre nello script: i filtri dei fornitori sono approssimativi (ruoli, paese, tipo di entita').
+- Confronta testi corti e sigle **a parola intera**, non per sottostringa ("Socio" contiene "cio", "Director" contiene "cto").
+- Distingui i casi simili ma diversi (es. "Product Owner" non e' un titolare; una community o un podcast non e' un'azienda) e confronta i campi di tipo per **contenuto**, non per uguaglianza esatta ("Educational" vs "Educational Institution").
+- Ogni scarto ha un **motivo** leggibile nell'output.
 
 ## 8. Ambiente (Windows)
 - Forza UTF-8 all'inizio di `main()`: `sys.stdout.reconfigure(encoding="utf-8")` e lo stesso per `stderr`.
 - Leggi e scrivi i file con `encoding="utf-8"`.
 - Non usare script Python scritti in linea nei comandi di shell: salvali in un file e lanciali da li'.
 - Usa l'interprete del progetto e dai un timeout ai comandi lunghi.
+
+## 9. Test isolati dalle risorse vere
+- I test non devono mai raggiungere servizi o dati reali (fogli, CRM, API a pagamento).
+- Togliere una variabile d'ambiente **non basta** se il codice ricarica il `.env` (es. `load_env()`): blocca il client nel test (es. `gspread.authorize` che solleva un errore) con una fixture `autouse`.
+- Se un test tocca per sbaglio una risorsa vera: fermati, verifica cosa e' stato scritto, ripulisci **solo** quello che il test ha creato e dillo all'utente.

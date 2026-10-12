@@ -4,7 +4,31 @@
 
 **Setup:** Claude Code in VS Code, Python 3.11 venv, Apify free plan, $5 of prepaid Anthropic API credit, Google service account on an education Workspace account.
 
-**Outcome:** email writing and sheet export work (tested with one made-up lead); lead search never produced a usable lead. See the [README](../README.md#result).
+**Outcome:** email writing and sheet export work (tested with one made-up lead); lead search never produced a usable lead.
+
+## Result
+
+| Part of the workflow | Status | How it was tested |
+|---|---|---|
+| **Lead search (Apify)** | ❌ No usable leads | Real runs |
+| Email writing (Claude Haiku 4.5) | ⚠️ Works | One made-up lead |
+| Writing to Google Sheets | ⚠️ Works, 13 columns read back and checked | One made-up lead |
+| Logic (limits, errors, duplicates) | ⚠️ 46 tests passing | Mocked APIs |
+
+**The workflow was not complete: its core step never produced a usable lead.** Total cost of the test: about $0.03. (On a paid plan, later, the lead search worked: see [case-study-2](../case-study-2/README.md).)
+
+## Known limitation at the time: the lead source
+
+On Apify's free plan:
+
+- `code_crafter/leads-finder` **cannot be run via API** (UI only).
+- `braveleads/...` and `olympus/...` charge a **minimum of 100 leads per run**.
+- `atomus/leads-finder` returns **no emails** on the free plan.
+- `themineworks/b2b-leads-finder` works via API but **searches by company, not by role and country**; on the three companies tested it found no CEO.
+
+## What I learned
+
+The most useful finding: **v1 trusted external services too much.** Claude picked a service from memory, guessed the response field names, treated an error message as valid data, and discovered plan limits only after building around them. v2 adds explicit checks for each of these (table below).
 
 ## A first, discarded run
 

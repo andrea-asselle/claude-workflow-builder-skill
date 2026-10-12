@@ -1,15 +1,19 @@
 # Rule: <Nome Workflow> (v1)
 
+<Solo dalla v2 in poi: cosa e' cambiato rispetto alla versione precedente e perche'. La versione precedente e' in `<nome>.v1.md`.>
+
 ## Obiettivo
 
-<Una frase: cosa produce il workflow e per chi.>
+<Una frase: cosa produce il workflow e per chi (es. quali entita', quali ruoli).>
 
 ## Trigger
 
-L'utente dice qualcosa come:
+**A richiesta** — l'utente dice qualcosa come:
 
 - "<frase esempio 1>"
 - "<frase esempio 2>"
+
+**Automatico** (se previsto, vedi automation-rules della skill) — <orario / webhook / evento>, dove gira, come si attiva e come si spegne. Spento finche' l'utente non chiede di attivarlo.
 
 ## Input Richiesti
 
@@ -70,6 +74,14 @@ Leggere `.tmp/run_state.json`:
 
 - Step 1 completato → `.tmp/<file>.json` esiste, saltare a step 2
 
+## Operazioni day-2 (solo workflow automatici)
+
+- Mettere in pausa: <comando>
+- Fermare tutto: <comando>
+- Dopo modifiche al codice: <comando di deploy>
+- Dopo cambio chiavi: <comando>
+- Dove leggere l'esito di ogni giro: <Log>
+
 ## Stato di verifica
 
 Aggiornare dopo ogni esecuzione reale.
@@ -77,6 +89,13 @@ Aggiornare dopo ogni esecuzione reale.
 | Parte del workflow | Stato | Come e' stato provato | Data |
 |--------------------|-------|-----------------------|------|
 | <step 1> | ✅ / ⚠️ / ❌ | dati reali / mock / dato inventato | <data> |
+| <trigger automatico, se previsto> | ✅ / ⚠️ / ❌ | giro avviato dal trigger vero | <data> |
+
+Resa e costo reali: <es. 2 risultati utili su 6, 0,10 $ per giro>.
+
+## Decisioni dell'utente
+
+- <es. "il ruolo X si tiene, Y no"> — fissata dal test `<nome del test>`
 
 ## Note
 

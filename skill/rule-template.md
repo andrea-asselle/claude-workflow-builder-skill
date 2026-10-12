@@ -1,15 +1,19 @@
 # Rule: <Workflow Name> (v1)
 
+<From v2 onwards only: what changed compared to the previous version and why. The previous version is in `<name>.v1.md`.>
+
 ## Goal
 
-<One sentence: what the workflow produces and for whom.>
+<One sentence: what the workflow produces and for whom (e.g. which entities, which roles).>
 
 ## Trigger
 
-The user says something like:
+**On request** — the user says something like:
 
 - "<example phrase 1>"
 - "<example phrase 2>"
+
+**Automatic** (if planned, see the skill's automation-rules) — <schedule / webhook / event>, where it runs, how it is switched on and off. Off until the user asks to switch it on.
 
 ## Required Inputs
 
@@ -70,6 +74,14 @@ Read `.tmp/run_state.json`:
 
 - Step 1 completed → `.tmp/<file>.json` exists, skip to step 2
 
+## Day-2 Operations (automatic workflows only)
+
+- Pause: <command>
+- Stop everything: <command>
+- After code changes: <deploy command>
+- After changing keys: <command>
+- Where to read the outcome of each run: <Log>
+
 ## Verification Status
 
 Update after every real run.
@@ -77,6 +89,13 @@ Update after every real run.
 | Workflow part | Status | How it was tested | Date |
 |---------------|--------|-------------------|------|
 | <step 1> | ✅ / ⚠️ / ❌ | real data / mock / made-up data | <date> |
+| <automatic trigger, if planned> | ✅ / ⚠️ / ❌ | run started by the real trigger | <date> |
+
+Real yield and cost: <e.g. 2 useful results out of 6, $0.10 per run>.
+
+## User Decisions
+
+- <e.g. "role X stays, Y doesn't"> — fixed by the test `<test name>`
 
 ## Notes
 
